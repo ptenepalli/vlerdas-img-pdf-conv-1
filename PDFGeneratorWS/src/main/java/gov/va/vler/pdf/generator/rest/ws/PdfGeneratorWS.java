@@ -49,7 +49,7 @@ public class PdfGeneratorWS
 	@GET
 	@Path("/{id}")
 	@Produces("application/pdf")
-	public InputStream getPDFByteArrayStream(@PathParam("id") String id) throws COSVisitorException, IOException, BadSecurityHandlerException, InterruptedException 
+	public Response getPDFStream(@PathParam("id") String id) throws COSVisitorException, IOException, BadSecurityHandlerException, InterruptedException 
 	{
 		log.info("Get PDF Stream for id: " + id);
 		PDDocument pdfDoc = null;
@@ -57,10 +57,33 @@ public class PdfGeneratorWS
 		try
 		{
 			// create PDF Document
-			pdfDoc = createPDFDocumentFromImage(getStreamFromCRUDWebClient(id));
-	
-			// create pdf byte array stream
-			return getOptimizedPDF(id, pdfDoc);
+			Response response = getResponseFromCRUDWebClient(id);
+			
+			switch (response.getStatus()) 
+			{
+				case 200:
+				{
+					break;
+				}
+				case 500:
+				{
+					log.error("building 500 response");
+					return Response.status(Response.Status.SERVICE_UNAVAILABLE).build();
+				}
+				case 404:
+				{
+					log.error("building 404 response");
+					return Response.status(Response.Status.NOT_FOUND).build();
+				}
+			}
+
+			// create PDF Document
+			pdfDoc = createPDFDocumentFromImage((InputStream)response.getEntity());
+
+			//create optimized pdf input stream
+			InputStream pdfStream = getOptimizedPDF(id, pdfDoc);
+			
+			return Response.ok(pdfStream).build();
 		} 
 		finally 
 		{
@@ -71,22 +94,19 @@ public class PdfGeneratorWS
 		}
 	}
 
-    InputStream getStreamFromCRUDWebClient(String id) throws FileNotFoundException, IOException 
+	Response getResponseFromCRUDWebClient(String id) throws FileNotFoundException, IOException 
     {    	
     	String url = ecrudURL + id;
-    	log.info("url : " + url);
     	
 		//Connect to CRUD
         WebClient client = WebClient.create(url);
               
         //Get response
 		Response response = client.get();
-	        
-		if (response.getStatus() == 200 || response.getStatus() == 201)
-		{
-			return (InputStream)response.getEntity();
-		}
-		return null;
+
+    	log.info("ecrud url: " + url + "  ecrud response: " + response.getStatus());
+
+		return response;
     }
 
 	PDDocument createPDFDocumentFromImage(InputStream image) throws IOException, BadSecurityHandlerException 

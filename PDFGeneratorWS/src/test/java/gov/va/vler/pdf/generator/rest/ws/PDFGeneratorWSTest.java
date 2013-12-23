@@ -1,5 +1,6 @@
 package gov.va.vler.pdf.generator.rest.ws;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -16,18 +17,20 @@ import javax.ws.rs.core.Response;
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.junit.Ignore;
 import org.junit.Test;
 
+//@Ignore
 public class PDFGeneratorWSTest 
 {
 	private PdfGeneratorWS testSubject = new PdfGeneratorWS();
 
 	@Test
-    public void isReturnsPDFInputStream()
+    public void isSuccessfullyReturnsPDFInputStream()
     {
 	    try 
 	    {
-	    	String url = "http://localhost:7001/pdfgenerator/fs/5269f4eb59e13d6c1a0000ab";
+	    	String url = "http://localhost:7001/pdfgenerator/fs/5269f4eb59e13d6c1a0000ab11";
     	
 	    	//Connect to REST
 	    	WebClient client = WebClient.create(url);
@@ -35,7 +38,9 @@ public class PDFGeneratorWSTest
 	    	//Get response
 	    	Response response = client.get();
 	    	
-	    	File pdfFile = new File("/temp/restimage.pdf");
+	    	System.out.println("client status " + response.getStatus());
+	    	
+	    	File pdfFile = new File("/temp/restimage1.pdf");
 			IOUtils.copy((InputStream)response.getEntity(), new FileOutputStream(pdfFile));
 			
 			assertNotNull(pdfFile);
@@ -54,11 +59,13 @@ public class PDFGeneratorWSTest
     {
 		try 
 		{
-			InputStream inStream = testSubject.getStreamFromCRUDWebClient("5269f4eb59e13d6c1a0000ab");
+			Response response = testSubject.getResponseFromCRUDWebClient("5269f4eb59e13d6c1a0000ab");
 			
-			assertNotNull(inStream);
+			assertNotNull(response);
+			assertEquals(200, response.getStatus());
+			assertNotNull(response.getEntity());
 			
-			IOUtils.copy(inStream, new FileOutputStream(new File("/temp/ecrudImage.jpg")));
+			IOUtils.copy((InputStream)response.getEntity(), new FileOutputStream(new File("/temp/ecrudImage.jpg")));
 		} 
 		catch (Exception e) 
 		{
